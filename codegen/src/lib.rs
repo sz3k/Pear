@@ -10,6 +10,7 @@ mod parser;
 use syn::parse::Parser;
 use syn::visit_mut::{self, VisitMut};
 use syn::spanned::Spanned;
+use proc_macro::Diagnostic;
 
 use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
