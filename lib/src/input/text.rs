@@ -1,4 +1,7 @@
-pub use crate::input::{Input, Rewind, Token, Slice, Show, ParserInfo};
+pub use crate::input::{Input, Rewind, Show, ParserInfo};
+
+#[cfg(feature = "color")]
+use yansi::Paint;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Span<'a> {
@@ -36,7 +39,7 @@ impl<'a> Show for Span<'a> {
                 write_snippet(f, &snippet[..SNIPPET_LEN / 2])?;
 
                 #[cfg(feature = "color")]
-                write!(f, " {} ", yansi::Paint::blue("..."))?;
+                write!(f, " {} ", "...".blue())?;
 
                 #[cfg(not(feature = "color"))]
                 write!(f, " ... ")?;
@@ -49,18 +52,19 @@ impl<'a> Show for Span<'a> {
 
             if let Some(cursor) = self.cursor {
                 #[cfg(feature = "color")]
-                write!(f, "{}", yansi::Paint::blue(cursor.escape_debug()))?;
+                write!(f, "{}", cursor.escape_debug().blue())?;
 
                 #[cfg(not(feature = "color"))]
                 write!(f, "{}", cursor.escape_debug())?;
             }
+
             write!(f, "\"")?;
         } else {
             #[cfg(feature = "color")]
-            write!(f, " {}", yansi::Paint::blue("[EOF]"))?;
+            write!(f, " {}", "[EOF]".blue())?;
 
             #[cfg(not(feature = "color"))]
-            write!(f, " [EOF]");
+            write!(f, " [EOF]")?;
         }
 
         Ok(())
@@ -162,7 +166,7 @@ impl<'a> Input for Text<'a> {
     fn context(&mut self, mark: Self::Marker) -> Self::Context {
         let cursor = self.token();
         let bytes_read = self.start.len() - self.current.len();
-        let pos = if bytes_read == 0 {
+        if bytes_read == 0 {
             Span { start: (1, 1, 0), end: (1, 1, 0), snippet: None, cursor }
         } else {
             let start_offset = mark;
@@ -183,9 +187,7 @@ impl<'a> Input for Text<'a> {
             };
 
             Span { start, end, cursor, snippet }
-        };
-
-        pos
+        }
     }
 }
 

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use inlinable_string::InlinableString;
 
 use crate::input::{Show, Input, Debugger, ParserInfo};
-use crate::macros::is_parse_debug;
 
 type Index = usize;
 
@@ -35,7 +34,7 @@ impl<T> Tree<T> {
         // If the stack indicates we have a parent, add to its children.
         if !self.stack.is_empty() {
             let parent = self.stack[self.stack.len() - 1];
-            self.children.entry(parent).or_insert(vec![]).push(index);
+            self.children.entry(parent).or_default().push(index);
         }
 
         // Make this the new parent.
@@ -92,19 +91,20 @@ impl Tree<Info> {
         };
 
         #[cfg(feature = "color")]
-        let color = match info.success {
-            Some(true) => ::yansi::Color::Green,
-            Some(false) => ::yansi::Color::Red,
-            None => ::yansi::Color::Unset,
+        use yansi::{Style, Paint, Color::*};
+
+        #[cfg(feature = "color")]
+        let style = match info.success {
+            Some(true) => Green.into(),
+            Some(false) => Red.into(),
+            None => Style::default(),
         };
 
         #[cfg(feature = "color")]
-        println!("{} ({})",
-            color.paint(format!("{}{}", info.parser.name, success)),
-            info.context);
+        println!("{}{} ({})", info.parser.name.paint(style), success.paint(style), info.context);
 
         #[cfg(not(feature = "color"))]
-        println!("{}{} ({})", info.name, success, info.context);
+        println!("{}{} ({})", info.parser.name, success, info.context);
 
         let children = self.get_children(node);
         let num_children = children.len();
@@ -133,8 +133,8 @@ pub struct TreeDebugger {
     tree: Tree<Info>,
 }
 
-impl TreeDebugger {
-    pub fn new() -> Self {
+impl Default for TreeDebugger {
+    fn default() -> Self {
         Self { tree: Tree::new() }
     }
 }
@@ -162,12 +162,6 @@ impl<I: Input> Debugger<I> for TreeDebugger {
 
         // We've reached the end. Print the whole thing and clear the tree.
         if let Some(0) = index {
-            #[cfg(feature = "color")] {
-                if cfg!(windows) && !::yansi::Paint::enable_windows_ascii() {
-                    ::yansi::Paint::disable();
-                }
-            }
-
             self.tree.debug_print(&mut vec![], 0);
             self.tree.clear();
         }
